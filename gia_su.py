@@ -1,4 +1,3 @@
-import asyncio
 import playsound
 import os
 import speech_recognition as sr
@@ -6,24 +5,24 @@ from openai import OpenAI
 import tkinter as tk
 from tkinter import scrolledtext
 from PIL import Image, ImageTk
-import speech_recognition as sr
-import pyaudio
-import keyboard
+import gtts
 
 recognizer = sr.Recognizer()
 client = OpenAI(api_key="sk-J3vEsFqZXfrV6UtUPCVTYYgfTzUdAr7lrqmhAxO3xDkGOLyL",
                               base_url="https://api.chatanywhere.tech/v1")
 
 def render_answer(prompt):
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system",
-             "content": "Tôi là học sinh của bạn, bạn là gia sư của tôi. Bạn tên là Văn. Bạn chỉ có thể nói những thứ liên quan đến bài học. Với những câu hỏi trắc nghiệm thì bạn sẽ phải phân tích và gửi lại đáp án đúng nhất. Đối với câu hỏi tự luận, bạn phải phân tích bài và đưa ra các cách giải đúng và chính xác. Bạn có thể trả lời được mọi bài học, đối với những hình ảnh, bạn phải xác nhận được thông tin trong ảnh là gì và đưa ra được câu trả lời chính xác."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    return response.choices[0].message.content
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Bạn chỉ có thể nói những thứ liên quan đến bài học. Với những câu hỏi trắc nghiệm thì bạn sẽ phải phân tích và gửi lại đáp án đúng nhất. Đối với câu hỏi tự luận, bạn phải phân tích bài và đưa ra các cách giải đúng và chính xác. Bạn có thể trả lời được mọi bài học, đối với những hình ảnh, bạn phải xác nhận được thông tin trong ảnh là gì và đưa ra được câu trả lời chính xác."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return str(e)
 
 def SEND(event=None):
     data = entry.get()
@@ -43,18 +42,24 @@ def record_audio():
             entry.insert(tk.END, spoken_text)
         except sr.UnknownValueError:
             print("Không thể hiểu được giọng nói của bạn. Vui lòng thử lại!")
+        except Exception as e:
+            print(f"Error: {e}")
 
 def play_audio(text):
-    tts = gtts.gTTS(text=text, lang='vi',)
-    tts.save("output.mp3")
-    playsound.playsound("output.mp3")
-    os.remove("output.mp3")
+    try:
+        tts = gtts.gTTS(text=text, lang='vi', slow=False)
+        tts.save("output.mp3")
+        playsound.playsound("output.mp3")
+        os.remove("output.mp3")
+    except Exception as e:
+        print(f"Error: {e}")
 
 def mic_button_clicked():
     record_audio()
 
 def play_button_clicked():
-    play_audio(text_area.get("1.0", tk.END))
+    text = text_area.get("1.0", tk.END)
+    play_audio(text)
 
 def on_button_hover(event):
     event.widget.config(relief="ridge")
@@ -101,7 +106,6 @@ button_frame.grid(row=1, column=2, padx=10, pady=10)
 send_button = tk.Button(button_frame, image=send_photo, command=SEND)
 send_button.image = send_photo
 send_button.pack(side=tk.TOP, pady=5)
-send_button.bind("<Enter>", on_button_hover)
 send_button.bind("<Leave>", on_button_leave)
 
 mic_button = tk.Button(button_frame, image=mic_photo, command=mic_button_clicked)
